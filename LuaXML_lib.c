@@ -351,7 +351,7 @@ int Xml_load (lua_State *L) {
 	size_t sz = ftell (file);
 	rewind (file);
 	char* buffer = (char*)malloc(sz+1);
-	fread (buffer,1,sz,file);
+	int read_result = fread (buffer,1,sz,file);
 	fclose(file);
 	buffer[sz]=0;
 	lua_pushlightuserdata(L,buffer);

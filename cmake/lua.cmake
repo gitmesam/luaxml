@@ -126,7 +126,7 @@ macro ( _lua_module_helper is_install _name )
     endforeach ()
    
     add_library( ${_target} MODULE ${_MODULE_SRC})
-    target_link_libraries ( ${_target} ${LUA_LIBRARY} ${_MODULE_LINK} )
+    target_link_libraries ( ${_target} ${_MODULE_LINK} )
     set_target_properties ( ${_target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
                 "${_module_dir}" PREFIX "" OUTPUT_NAME "${_module_filenamebase}" )
     if ( ${is_install} )

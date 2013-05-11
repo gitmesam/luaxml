@@ -15,7 +15,7 @@ if ( MSVC )
   set ( WORKAROUND _cpp )
 endif ( MSVC )
 
-install_lua_module ( luaXML_lib LuaXML_lib${WORKAROUND}.c )
+install_lua_module ( LuaXML_lib LuaXML_lib${WORKAROUND}.c )
 install_lua_module ( LuaXml LuaXml.lua )
 install_test ( test.lua test.xml )
 install_data ( readme.txt )

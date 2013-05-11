@@ -236,7 +236,7 @@ static size_t sv_code_size=0;
 /// stores currently allocated capacity for special character codes
 static size_t sv_code_capacity=16;
 /// stores code table for special characters
-static char** sv_code=0; 
+static char** sv_code=0;
 
 //--- public methods -----------------------------------------------
 
@@ -290,30 +290,30 @@ int Xml_eval(lua_State *L) {
 		}
 		else {
 			if (firstStatement) {
-				lua_newtable(L); 
+				lua_newtable(L);
 				firstStatement = 0;
 			}
 			else return lua_gettop(L);
 		}
-		// set metatable:    
+		// set metatable:
 		lua_newtable(L);
 		lua_pushliteral(L, "__index");
 		lua_getglobal(L, "xml");
 		lua_settable(L, -3);
-			
+
 		lua_pushliteral(L, "__tostring"); // set __tostring metamethod
 		lua_getglobal(L, "xml");
 		lua_pushliteral(L,"str");
 		lua_gettable(L, -2);
 		lua_remove(L, -2);
-		lua_settable(L, -3);			
+		lua_settable(L, -3);
 		lua_setmetatable(L, -2);
-		
+
 		// parse tag and content:
 		lua_pushnumber(L,0); // use index 0 for storing the tag
 		lua_pushstring(L, Tokenizer_next(tok));
 		lua_settable(L, -3);
-		
+
 		while(((token = Tokenizer_next(tok))!=0)&&(token[0]!=CLS)&&(token[0]!=ESC)) { // parse tag header
 			size_t sepPos=find(token, "=", 0);
 			if(token[sepPos]) { // regular attribute
@@ -322,7 +322,7 @@ int Xml_eval(lua_State *L) {
 				Xml_pushDecode(L, aVal, strlen(aVal)-1);
 				lua_settable(L, -3);
 			}
-		}            
+		}
 		if(!token||(token[0]==ESC)) {
 			if(lua_gettop(L)>1) lua_settop(L,-2); // this tag has no content, only attributes
 			else break;
@@ -362,7 +362,7 @@ int Xml_load (lua_State *L) {
 int Xml_registerCode(lua_State *L) {
     const char * decoded = luaL_checkstring(L,1);
     const char * encoded = luaL_checkstring(L,2);
-    
+
     size_t i;
     for(i=0; i<sv_code_size; i+=2)
         if(strcmp(sv_code[i],decoded)==0)
@@ -414,16 +414,16 @@ int _EXPORT luaopen_LuaXML_lib (lua_State* L) {
 	// register default codes:
 	if(!sv_code) {
 		sv_code=(char**)malloc(sv_code_capacity*sizeof(char*));
-		sv_code[sv_code_size++]="&";
-		sv_code[sv_code_size++]="&amp;";
-		sv_code[sv_code_size++]="<";
-		sv_code[sv_code_size++]="&lt;";
-		sv_code[sv_code_size++]=">";
-		sv_code[sv_code_size++]="&gt;";
-		sv_code[sv_code_size++]="\"";
-		sv_code[sv_code_size++]="&quot;";
-		sv_code[sv_code_size++]="'";
-		sv_code[sv_code_size++]="&apos;";
+		sv_code[sv_code_size++]=(char*)"&";
+		sv_code[sv_code_size++]=(char*)"&amp;";
+		sv_code[sv_code_size++]=(char*)"<";
+		sv_code[sv_code_size++]=(char*)"&lt;";
+		sv_code[sv_code_size++]=(char*)">";
+		sv_code[sv_code_size++]=(char*)"&gt;";
+		sv_code[sv_code_size++]=(char*)"\"";
+		sv_code[sv_code_size++]=(char*)"&quot;";
+		sv_code[sv_code_size++]=(char*)"'";
+		sv_code[sv_code_size++]=(char*)"&apos;";
 	}
 	return 1;
 }

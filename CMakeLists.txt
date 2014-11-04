@@ -6,14 +6,12 @@
 
 project ( luaxml C )
 cmake_minimum_required ( VERSION 2.8 )
-include ( cmake/dist.cmake )
-include ( lua )
 
-if ( MSVC )
-  add_definitions ( -TP )
-  # treat as C++ for C99-ish features
-  set ( WORKAROUND _cpp )
-endif ( MSVC )
+#if ( MSVC )
+#  add_definitions ( -TP )
+#  # treat as C++ for C99-ish features
+#  set ( WORKAROUND _cpp )
+#endif ( MSVC )
 
 install_lua_module ( LuaXML_lib LuaXML_lib${WORKAROUND}.c )
 install_lua_module ( LuaXml LuaXml.lua )

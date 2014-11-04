@@ -1,8 +1,8 @@
 /**
 LuaXML License
 
-LuaXml is licensed under the terms of the MIT license reproduced below,
-the same as Lua itself. This means that LuaXml is free software and can be
+LuaXML is licensed under the terms of the MIT license reproduced below,
+the same as Lua itself. This means that LuaXML is free software and can be
 used for both academic and commercial purposes at absolutely no cost.
 
 Copyright (C) 2007-2009 Gerald Franz, www.viremo.de

@@ -7,6 +7,9 @@ if(NOT CMAKE_BUILD_TYPE)
         FORCE)
 endif()
 
+SET(INSTALL_CMOD share/lua/cmod CACHE PATH "Directory to install Lua binary modules (configure lua via LUA_CPATH)")
+SET(INSTALL_LMOD share/lua/lmod CACHE PATH "Directory to install pure Lua modules (configure lua via LUA_LPATH)")
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
 find_package(Lua REQUIRED)

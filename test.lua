@@ -1,4 +1,4 @@
-require('LuaXML')
+xml = require('LuaXml')
 
 -- load XML data from file "test.xml" into local table xfile
 local xfile = xml.load("test.xml")
@@ -6,7 +6,7 @@ local xfile = xml.load("test.xml")
 local xscene = xfile:find("scene")
 -- if this substatement is found
 if xscene ~= nil then
-  --  …print it to screen
+  --  print it to screen
   print(xscene)
   --  print  tag, attribute id and first substatement
   print( xscene:tag(), xscene.id, xscene[1] )

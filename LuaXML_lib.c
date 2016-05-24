@@ -1,11 +1,11 @@
 /**
 LuaXML License
 
-LuaXML is licensed under the terms of the MIT license reproduced below,
-the same as Lua itself. This means that LuaXML is free software and can be
+LuaXml is licensed under the terms of the MIT license reproduced below,
+the same as Lua itself. This means that LuaXml is free software and can be
 used for both academic and commercial purposes at absolutely no cost.
 
-Copyright (C) 2007-2009 Gerald Franz, www.viremo.de
+Copyright (C) 2007-2013 Gerald Franz, eludi.net
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,14 +33,25 @@ THE SOFTWARE.
 # define _EXPORT
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+
+#if (LUA_VERSION_NUM < 502)
+#define lua_rawlen(L, i) lua_objlen(L, i)
+#define luaL_newlib(L,l) (lua_newtable(L), luaL_register(L,NULL,l))
+#endif
 
 static const char ESC=27;
 static const char OPN=28;
@@ -236,27 +247,35 @@ static size_t sv_code_size=0;
 /// stores currently allocated capacity for special character codes
 static size_t sv_code_capacity=16;
 /// stores code table for special characters
-static char** sv_code=0;
+static char** sv_code=0; 
 
 //--- public methods -----------------------------------------------
 
 static void Xml_pushDecode(lua_State* L, const char* s, size_t s_size) {
-	size_t start=0, pos;
-	if(!s_size) s_size=strlen(s);
+	if(!s_size)
+		s_size=strlen(s);
 	luaL_Buffer b;
 	luaL_buffinit(L, &b);
 	const char* found = strstr(s, "&#");
-	if(!found) pos = s_size;
-	else pos = found-s;
-	while(found&&(pos+5<s_size)&&(*(found+5)==';')&&isdigit(*(found+2))&&isdigit(*(found+3))&&isdigit(*(found+4)) ) {
-		if(pos>start) luaL_addlstring(&b,s+start, pos-start);
-		luaL_addchar(&b, 100*(s[pos+2]-48)+10*(s[pos+3]-48)+(s[pos+4]-48));
-		start=pos+6;
-		found = strstr(found+6, "&#");
-		if(!found) pos = s_size;
-		else pos = found-s;
+	size_t start=0, pos = found ? found-s : s_size;
+	while(found) {
+		char ch = 0;
+		size_t i=0;
+		for(found += 2; i<3; ++i, ++found)
+			if(isdigit(*found))
+				ch = ch * 10 + (*found - 48);
+			else break;
+		if(*found == ';') {
+			if(pos>start)
+				luaL_addlstring(&b, s+start, pos-start);
+			luaL_addchar(&b, ch);
+			start = pos + 3 + i;
+		}
+		found = strstr(found+1, "&#");
+		pos = found ? found-s : s_size;
 	}
-	if(pos>start) luaL_addlstring(&b,s+start, pos-start);
+	if(pos>start)
+		luaL_addlstring(&b,s+start, pos-start);
 	luaL_pushresult(&b);
 	size_t i;
 	for(i=sv_code_size-1; i<sv_code_size; i-=2) {
@@ -268,7 +287,8 @@ static void Xml_pushDecode(lua_State* L, const char* s, size_t s_size) {
 int Xml_eval(lua_State *L) {
 	char* str = 0;
 	size_t str_size=0;
-	if(lua_isuserdata(L,1)) str = (char*)lua_touserdata(L,1);
+	if(lua_isuserdata(L,1))
+		str = (char*)lua_touserdata(L,1);
 	else {
 		const char * sTmp = luaL_checklstring(L,1,&str_size);
 		str = (char*)malloc(str_size+1);
@@ -281,7 +301,7 @@ int Xml_eval(lua_State *L) {
 	int firstStatement = 1;
 	while((token=Tokenizer_next(tok))!=0) if(token[0]==OPN) { // new tag found
 		if(lua_gettop(L)) {
-			int newIndex=lua_objlen(L,-1)+1;
+			int newIndex=lua_rawlen(L,-1)+1;
 			lua_pushnumber(L,newIndex);
 			lua_newtable(L);
 			lua_settable(L, -3);
@@ -319,7 +339,9 @@ int Xml_eval(lua_State *L) {
 			if(token[sepPos]) { // regular attribute
 				const char* aVal =token+sepPos+2;
 				lua_pushlstring(L, token, sepPos);
-				Xml_pushDecode(L, aVal, strlen(aVal)-1);
+				size_t lenVal = strlen(aVal)-1;
+				if(!lenVal) Xml_pushDecode(L, "", 0);
+				else Xml_pushDecode(L, aVal, lenVal);
 				lua_settable(L, -3);
 			}
 		}
@@ -333,7 +355,7 @@ int Xml_eval(lua_State *L) {
 		else break;
 	}
 	else { // read elements
-		lua_pushnumber(L,lua_objlen(L,-1)+1);
+		lua_pushnumber(L,lua_rawlen(L,-1)+1);
 		Xml_pushDecode(L, token, 0);
 		lua_settable(L, -3);
 	}
@@ -345,13 +367,14 @@ int Xml_eval(lua_State *L) {
 int Xml_load (lua_State *L) {
 	const char * filename = luaL_checkstring(L,1);
 	FILE * file=fopen(filename,"r");
-	if(!file) return luaL_error(L,"LuaXml ERROR: \"%s\" file error or file not found!",filename);
+	if(!file)
+		return luaL_error(L,"LuaXml ERROR: \"%s\" file error or file not found!",filename);
 
 	fseek (file , 0 , SEEK_END);
 	size_t sz = ftell (file);
 	rewind (file);
 	char* buffer = (char*)malloc(sz+1);
-	int read_result = fread (buffer,1,sz,file);
+	sz = fread (buffer,1,sz,file);
 	fclose(file);
 	buffer[sz]=0;
 	lua_pushlightuserdata(L,buffer);
@@ -360,13 +383,13 @@ int Xml_load (lua_State *L) {
 };
 
 int Xml_registerCode(lua_State *L) {
-    const char * decoded = luaL_checkstring(L,1);
-    const char * encoded = luaL_checkstring(L,2);
+	const char * decoded = luaL_checkstring(L,1);
+	const char * encoded = luaL_checkstring(L,2);
 
-    size_t i;
-    for(i=0; i<sv_code_size; i+=2)
-        if(strcmp(sv_code[i],decoded)==0)
-            return luaL_error(L,"LuaXml ERROR: code already exists.");
+	size_t i;
+	for(i=0; i<sv_code_size; i+=2)
+		if(strcmp(sv_code[i],decoded)==0)
+			return luaL_error(L,"LuaXml ERROR: code already exists.");
 	if(sv_code_size+2>sv_code_capacity) {
 		sv_code_capacity*=2;
 		sv_code = (char**)realloc(sv_code, sv_code_capacity*sizeof(char*));
@@ -375,11 +398,12 @@ int Xml_registerCode(lua_State *L) {
 	strcpy(sv_code[sv_code_size++], decoded);
 	sv_code[sv_code_size]=(char*)malloc(strlen(encoded)+1);
 	strcpy(sv_code[sv_code_size++],encoded);
-    return 0;
+	return 0;
 }
 
 int Xml_encode(lua_State *L) {
-	if(lua_gettop(L)!=1) return 0;
+	if(lua_gettop(L)!=1)
+		return 0;
 	luaL_checkstring(L,-1);
 	size_t i;
 	for(i=0; i<sv_code_size; i+=2) {
@@ -396,12 +420,16 @@ int Xml_encode(lua_State *L) {
 		luaL_addstring(&b,char2code((unsigned char)(s[pos]),buf));
 		start=pos+1;
 	}
-	if(pos>start) luaL_addlstring(&b,s+start, pos-start);
+	if(pos>start)
+		luaL_addlstring(&b,s+start, pos-start);
 	luaL_pushresult(&b);
 	lua_remove(L,-2);
-    return 1;
+	return 1;
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int _EXPORT luaopen_LuaXML_lib (lua_State* L) {
 	static const struct luaL_Reg funcs[] = {
 		{"load", Xml_load},
@@ -410,20 +438,24 @@ int _EXPORT luaopen_LuaXML_lib (lua_State* L) {
 		{"registerCode", Xml_registerCode},
 		{NULL, NULL}
 	};
-	luaL_register(L, "xml", funcs);
+	luaL_newlib(L, funcs);
 	// register default codes:
 	if(!sv_code) {
 		sv_code=(char**)malloc(sv_code_capacity*sizeof(char*));
-		sv_code[sv_code_size++]=(char*)"&";
-		sv_code[sv_code_size++]=(char*)"&amp;";
-		sv_code[sv_code_size++]=(char*)"<";
-		sv_code[sv_code_size++]=(char*)"&lt;";
-		sv_code[sv_code_size++]=(char*)">";
-		sv_code[sv_code_size++]=(char*)"&gt;";
-		sv_code[sv_code_size++]=(char*)"\"";
-		sv_code[sv_code_size++]=(char*)"&quot;";
-		sv_code[sv_code_size++]=(char*)"'";
-		sv_code[sv_code_size++]=(char*)"&apos;";
+		sv_code[sv_code_size++]="&";
+		sv_code[sv_code_size++]="&amp;";
+		sv_code[sv_code_size++]="<";
+		sv_code[sv_code_size++]="&lt;";
+		sv_code[sv_code_size++]=">";
+		sv_code[sv_code_size++]="&gt;";
+		sv_code[sv_code_size++]="\"";
+		sv_code[sv_code_size++]="&quot;";
+		sv_code[sv_code_size++]="'";
+		sv_code[sv_code_size++]="&apos;";
 	}
 	return 1;
 }
+#ifdef __cplusplus
+} // extern "C"
+#endif
+

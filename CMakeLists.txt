@@ -42,5 +42,5 @@ get_filename_component(_lua_lib_dir ${LUA_LIBRARY} PATH)
 add_library(LuaXML_lib MODULE ${SRC})
 set_target_properties(LuaXML_lib PROPERTIES PREFIX "")
 install(TARGETS LuaXML_lib DESTINATION "${_lua_module_dir}")
-install(FILES LuaXml.lua DESTINATION "${_lua_shared_dir}")
+install(FILES LuaXML.lua DESTINATION "${_lua_shared_dir}")
 
